@@ -2,7 +2,6 @@ module CH1 where
 
 
 -- There's the Hex package, but I'd like to try converting numbers to hex myself
-import Data.Char
 
 {-  addition table
     - Creates a 2d array representing the addition of 0-(n-1) for a base n system
@@ -10,22 +9,37 @@ import Data.Char
     - TODO How to pretty print? I.e. how to print in a table/grid?
 -}
 
+isBaseValid :: Int -> Bool
+isBaseValid n = n > 2 && n < 36
 
--- TODO Find a way of adding base 0 in by default instead of having to call `getHexRepresentation 321 0`
-getHexRepresentation :: Int -> Int -> String
-getHexRepresentation x y
-  | y < 0 = ""
-  | x >= 16 ^ (y + 1) = getHexRepresentation x (y + 1)
-  | otherwise = intToDigit (x `div` (16 ^ y)) : getHexRepresentation (x `mod` (16 ^ y)) (y - 1)
+-- convertNumToSymbol => returns an alphanumeric character to represent the max value of a base
+-- To make things more convenient we're ignoring negative numbers
+convertNumToSymbol :: Int -> Char
+-- I need to do a better job at explaining things. i.e. why n-2?
+convertNumToSymbol n =
+  if n < 10
+  then ['0'..'9'] !! n
+  else ['a'..'z'] !! (n - 10)
 
+type Base = Int
+type Exponent = Int
 
-getAdditionTable :: Int -> [String]
-getAdditionTable n = map (flip getHexRepresentation 0) [x + y | x <- [0..n], y <- [0..n]]
+getGreatestBaseExponent :: Base -> Int -> Int -> Int
+getGreatestBaseExponent b a n =
+  if b^a > n
+  then a - 1
+  else getGreatestBaseExponent b (a + 1) n
 
-getMultiplicationTable :: Int -> [String]
-getMultiplicationTable n = map (flip getHexRepresentation 0) [x * y | x <- [0..n], y <- [0..n]]
+convertNum :: Base -> Int -> String
+convertNum b n =
+  if isBaseValid b
+  then convertNum' b e n
+  else error "Invalid number"
+  where e = getGreatestBaseExponent b 0 n
 
-
-prettyPrint :: Int -> [String] -> [[String]]
-prettyPrint _ [] = []
-prettyPrint n xs = take n xs : prettyPrint n (drop n xs)
+convertNum' :: Base -> Exponent -> Int -> String
+convertNum' b e n =
+  if e == 0
+  then convertNumToSymbol n : []
+  else (convertNumToSymbol . fst $ dm) : (convertNum' b (e - 1) (snd dm))
+  where dm = divMod n (b^e)
